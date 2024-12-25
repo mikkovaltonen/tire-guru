@@ -10,12 +10,20 @@ import {
   Paper,
   Grid,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  FormControlLabel,
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import Logo from '../components/Logo';
 import { auth } from '../config/firebase';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Add background image URLs (replace these with your actual image URLs)
 const CHATBOT_BG = 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80';
@@ -28,6 +36,8 @@ function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +45,10 @@ function Login() {
     
     try {
       if (isSignUp) {
+        if (!termsAccepted) {
+          setError('Sinun täytyy hyväksyä käyttöehdot jatkaaksesi');
+          return;
+        }
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
@@ -214,8 +228,34 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 sx={{ mb: 2 }}
               />
+              {isSignUp && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2">
+                      Hyväksyn{' '}
+                      <Link
+                        component="button"
+                        variant="body2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setTermsDialogOpen(true);
+                        }}
+                      >
+                        käyttöehdot
+                      </Link>
+                    </Typography>
+                  }
+                  sx={{ mt: 1 }}
+                />
+              )}
               {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
+                <Alert severity="error" sx={{ mt: 2 }}>
                   {error}
                 </Alert>
               )}
@@ -224,12 +264,7 @@ function Login() {
                 fullWidth
                 variant="contained"
                 size="large"
-                sx={{ 
-                  mt: 2, 
-                  mb: 3,
-                  py: 1.5,
-                  fontSize: '1.1rem'
-                }}
+                sx={{ mt: 2, mb: 3 }}
               >
                 {isSignUp ? 'Create Account' : 'Sign In'}
               </Button>
@@ -258,6 +293,103 @@ function Login() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Terms Dialog */}
+      <Dialog
+        open={termsDialogOpen}
+        onClose={() => setTermsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle>
+          Käyttöehdot
+          <IconButton
+            aria-label="sulje"
+            onClick={() => setTermsDialogOpen(false)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ height: '60vh' }}>
+          <Box sx={{ p: 1 }}>
+            <Typography component="div" variant="body2">
+              <h1>Terms of Service</h1>
+              
+              <h2>1. General</h2>
+              <p>These terms of service govern the use of AI Assistant Builder service ("Service"). By using the Service, you accept these terms.</p>
+              
+              <h2>2. Service Description</h2>
+              <p>The Service provides tools for creating and managing AI-assisted chatbots. The Service utilizes OpenAI technology.</p>
+              
+              <h2>3. User Responsibilities</h2>
+              <ul>
+                <li>User is responsible for the content of their created chatbots</li>
+                <li>User agrees not to use the Service for illegal purposes</li>
+                <li>User is responsible for protecting their account information</li>
+              </ul>
+              
+              <h2>4. Privacy</h2>
+              <ul>
+                <li>We collect and process personal data according to our privacy policy</li>
+                <li>We do not share personal information with third parties without user consent</li>
+                <li>Users have the right to request deletion of their data</li>
+              </ul>
+              
+              <h2>5. Service Usage Restrictions</h2>
+              <ul>
+                <li>The Service may only be used for legal purposes</li>
+                <li>Creating harmful or offensive content is prohibited</li>
+                <li>Service provider may limit or block Service usage in cases of misuse</li>
+              </ul>
+              
+              <h2>6. Intellectual Property Rights</h2>
+              <ul>
+                <li>The Service and its content's intellectual property rights belong to the service provider</li>
+                <li>User retains rights to their created content</li>
+              </ul>
+              
+              <h2>7. Limitation of Liability</h2>
+              <ul>
+                <li>The Service is provided "as is"</li>
+                <li>We do not guarantee uninterrupted operation of the Service</li>
+                <li>We are not liable for indirect damages</li>
+              </ul>
+              
+              <h2>8. Termination</h2>
+              <ul>
+                <li>User may terminate Service usage at any time</li>
+                <li>Service provider may terminate usage rights for terms of service violations</li>
+              </ul>
+              
+              <h2>9. Changes to Terms</h2>
+              <p>We reserve the right to modify these terms. Changes will be announced in the Service.</p>
+              
+              <h2>10. Applicable Law</h2>
+              <p>These terms are governed by Finnish law.</p>
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTermsDialogOpen(false)}>
+            Sulje
+          </Button>
+          <Button 
+            variant="contained"
+            onClick={() => {
+              setTermsAccepted(true);
+              setTermsDialogOpen(false);
+            }}
+          >
+            Hyväksy
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

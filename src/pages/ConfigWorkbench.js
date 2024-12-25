@@ -12,9 +12,14 @@ import {
   Stack,
   Alert,
   styled,
-  Chip,
-  Tooltip,
-  IconButton
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Link
 } from '@mui/material';
 import { 
   collection, 
@@ -25,10 +30,11 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import Logo from '../components/Logo';
 import { auth, db } from '../config/firebase';
-import { Launch as LaunchIcon, ContentCopy as CopyIcon } from '@mui/icons-material';
+import { AccountCircle, ContentCopy } from '@mui/icons-material';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 // Custom styled buttons
@@ -55,8 +61,9 @@ function ConfigWorkbench() {
   const [assistants, setAssistants] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false });
-  const [copySuccess, setCopySuccess] = useState(false);
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Load assistants from Firebase configs collection
   const loadAssistants = useCallback(async () => {
@@ -70,10 +77,8 @@ function ConfigWorkbench() {
           createdAt: doc.data().createdAt || new Date().toISOString(),
           changedAt: doc.data().changedAt || new Date().toISOString()
         }))
-        // Filter to show only user's own assistants
         .filter(assistant => assistant.userEmail === auth.currentUser?.email);
       
-      // Sort by most recently changed
       const sortedAssistants = assistantsList.sort((a, b) => 
         new Date(b.changedAt) - new Date(a.changedAt)
       );
@@ -83,7 +88,7 @@ function ConfigWorkbench() {
       console.error('Error loading assistants:', error);
       setMessage('Error loading assistants: ' + error.message);
     }
-  }, [db]);
+  }, []);
 
   // Load specific config when botId changes
   useEffect(() => {
@@ -130,7 +135,7 @@ function ConfigWorkbench() {
     };
 
     loadConfig();
-  }, [botId, db, auth.currentUser, navigate]);
+  }, [botId, navigate]);
 
   // Initial load of assistants
   useEffect(() => {
@@ -173,13 +178,19 @@ function ConfigWorkbench() {
       const newId = `config_${Date.now()}`;
       const configRef = doc(db, 'configs', newId);
       
-      await setDoc(configRef, {
+      // Create new config without publishId
+      const newConfig = {
         ...config,
+        publishId: null, // Reset publish state
         createdAt: new Date().toISOString(),
         changedAt: new Date().toISOString(),
         userEmail: auth.currentUser?.email
-      });
+      };
+      
+      await setDoc(configRef, newConfig);
 
+      // Update local state
+      setConfig(newConfig);
       setMessage('New assistant created successfully!');
       await loadAssistants();
       navigate(`/config/${newId}`);
@@ -352,14 +363,6 @@ function ConfigWorkbench() {
     }
   };
 
-  // Add copy URL function
-  const handleCopyUrl = () => {
-    const url = `${window.location.origin}/chat/${config.publishId}`;
-    navigator.clipboard.writeText(url);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
-  };
-
   // Modify handleUnpublish to use confirmation
   const handleUnpublishClick = () => {
     setConfirmDialog({
@@ -371,6 +374,36 @@ function ConfigWorkbench() {
       },
       onCancel: () => setConfirmDialog({ open: false })
     });
+  };
+
+  // Add user menu handlers
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Add account deletion handler
+  const handleDeleteAccount = async () => {
+    try {
+      // Delete user's assistants
+      const userAssistants = assistants.map(a => a.id);
+      await Promise.all(userAssistants.map(id => 
+        deleteDoc(doc(db, 'configs', id))
+      ));
+
+      // Delete user account
+      await auth.currentUser.delete();
+      
+      // Sign out
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setMessage('Error deleting account: ' + error.message);
+    }
   };
 
   return (
@@ -402,90 +435,43 @@ function ConfigWorkbench() {
           position="sticky" 
           elevation={0}
           sx={{ 
-            bgcolor: 'white',
+            bgcolor: 'background.paper',
             borderBottom: '1px solid #e0e0e0'
           }}
         >
           <Toolbar sx={{ minHeight: '56px' }}>
-            <Box sx={{ flexGrow: 1 }}>
+            {/* Left side: Logo and welcome message */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Logo size="small" />
               <Typography 
-                variant="h6" 
+                variant="subtitle2" 
+                color="text.secondary"
                 sx={{ 
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  mb: 0.5
+                  borderLeft: '1px solid #e0e0e0',
+                  pl: 2,
+                  display: { xs: 'none', sm: 'block' }
                 }}
               >
-                {config.name || 'New Assistant'}
-                {config.publishId && (
-                  <Chip
-                    size="small"
-                    label="Published"
-                    color="success"
-                    sx={{ ml: 1 }}
-                  />
-                )}
+                {auth.currentUser?.email}
               </Typography>
-              {config.publishId && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <a
-                    href={`${window.location.origin}/chat/${config.publishId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        color: 'primary.main',
-                        '&:hover': { textDecoration: 'underline' }
-                      }}
-                    >
-                      {window.location.origin}/chat/{config.publishId}
-                      <LaunchIcon sx={{ fontSize: 16 }} />
-                    </Typography>
-                  </a>
-                  <Tooltip title={copySuccess ? "Copied!" : "Copy URL"}>
-                    <IconButton 
-                      size="small" 
-                      onClick={handleCopyUrl}
-                      sx={{ p: 0.5 }}
-                    >
-                      <CopyIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              )}
             </Box>
+
+            {/* Right side: Action buttons */}
+            <Box sx={{ flexGrow: 1 }} />
             <Stack direction="row" spacing={1}>
-              <ActionButton 
-                variant="contained" 
+              <ActionButton
+                variant="outlined"
                 size="small"
                 onClick={handleSave}
-                disabled={!config.name || isLoading}
-                sx={{ 
-                  bgcolor: '#1976d2', 
-                  '&:hover': { bgcolor: '#1565c0' }
-                }}
+                disabled={isLoading}
               >
                 Save
               </ActionButton>
-              <ActionButton 
-                variant="outlined" 
+              <ActionButton
+                variant="outlined"
                 size="small"
                 onClick={handleSaveAsNew}
                 disabled={isLoading}
-                sx={{ 
-                  color: '#2E7D32', 
-                  borderColor: '#2E7D32',
-                  '&:hover': { 
-                    bgcolor: 'rgba(46, 125, 50, 0.04)',
-                    borderColor: '#1B5E20'
-                  }
-                }}
               >
                 Save as new
               </ActionButton>
@@ -517,30 +503,29 @@ function ConfigWorkbench() {
                   }
                 }}
               >
-                {isLoading ? 'Deleting...' : 'Delete'}
+                Delete
               </ActionButton>
-              <ActionButton 
-                variant="text" 
+              <IconButton
                 size="small"
-                onClick={handleLogout}
-                disabled={isLoading}
-                sx={{ color: '#666' }}
+                onClick={handleUserMenuOpen}
+                sx={{ ml: 1 }}
               >
-                Logout
-              </ActionButton>
+                <AccountCircle />
+              </IconButton>
             </Stack>
           </Toolbar>
         </AppBar>
 
         {/* Content */}
-        <Container maxWidth="lg" sx={{ py: 3 }}>
-          <Grid container spacing={2}>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Grid container spacing={3}>
             {message && (
               <Grid item xs={12}>
                 <Alert 
                   severity="success" 
                   sx={{ 
                     mb: 2,
+                    bgcolor: 'rgba(46, 125, 50, 0.05)',
                     '& .MuiAlert-message': { 
                       fontSize: '0.875rem',
                       '& a': {
@@ -557,15 +542,89 @@ function ConfigWorkbench() {
               </Grid>
             )}
 
+            {/* Add permanent link display for published assistants */}
+            {config.publishId && (
+              <Grid item xs={12}>
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    mb: 2,
+                    bgcolor: 'background.default',
+                    borderRadius: 2,
+                    border: '1px solid #e0e0e0'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
+                        color: 'text.secondary',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Published URL:
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        flexGrow: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      <Link
+                        href={`${window.location.origin}/chat/${config.publishId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: 'primary.main',
+                          textDecoration: 'none',
+                          '&:hover': {
+                            textDecoration: 'underline'
+                          }
+                        }}
+                      >
+                        {`${window.location.origin}/chat/${config.publishId}`}
+                      </Link>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/chat/${config.publishId}`);
+                        setMessage('URL copied to clipboard!');
+                      }}
+                      sx={{ 
+                        color: 'text.secondary',
+                        '&:hover': {
+                          color: 'primary.main'
+                        }
+                      }}
+                    >
+                      <ContentCopy fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Paper>
+              </Grid>
+            )}
+
             <Grid item xs={12}>
-              <Paper sx={{ p: 3, mb: 2 }}>
+              <Paper 
+                elevation={0} 
+                sx={{ 
+                  p: 3, 
+                  mb: 2,
+                  bgcolor: 'background.default',
+                  borderRadius: 2
+                }}
+              >
                 <Typography 
                   variant="h6" 
                   gutterBottom
                   sx={{ 
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: '#333'
+                    color: 'text.primary',
+                    mb: 2
                   }}
                 >
                   Assistant Name
@@ -578,11 +637,16 @@ function ConfigWorkbench() {
                     name: e.target.value
                   })}
                   placeholder="Enter a name for your assistant"
-                  variant="outlined"
-                  size="small"
+                  variant="standard"
                   sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      fontSize: '0.875rem'
+                    '& .MuiInput-root': {
+                      fontSize: '0.875rem',
+                      '&:before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                      },
+                      '&:hover:not(.Mui-disabled):before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.2)'
+                      }
                     }
                   }}
                 />
@@ -590,14 +654,23 @@ function ConfigWorkbench() {
             </Grid>
 
             <Grid item xs={12}>
-              <Paper sx={{ p: 3, mb: 2 }}>
+              <Paper 
+                elevation={0} 
+                sx={{ 
+                  p: 3, 
+                  mb: 2,
+                  bgcolor: 'background.default',
+                  borderRadius: 2
+                }}
+              >
                 <Typography 
                   variant="h6" 
                   gutterBottom
                   sx={{ 
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: '#333'
+                    color: 'text.primary',
+                    mb: 2
                   }}
                 >
                   Role Description
@@ -611,11 +684,17 @@ function ConfigWorkbench() {
                     ...config,
                     roleDescription: e.target.value
                   })}
-                  variant="outlined"
-                  size="small"
+                  variant="standard"
+                  placeholder="Describe the role and purpose of your assistant"
                   sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      fontSize: '0.875rem'
+                    '& .MuiInput-root': {
+                      fontSize: '0.875rem',
+                      '&:before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                      },
+                      '&:hover:not(.Mui-disabled):before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.2)'
+                      }
                     }
                   }}
                 />
@@ -623,14 +702,23 @@ function ConfigWorkbench() {
             </Grid>
 
             <Grid item xs={12}>
-              <Paper sx={{ p: 3, mb: 2 }}>
+              <Paper 
+                elevation={0} 
+                sx={{ 
+                  p: 3, 
+                  mb: 2,
+                  bgcolor: 'background.default',
+                  borderRadius: 2
+                }}
+              >
                 <Typography 
                   variant="h6" 
                   gutterBottom
                   sx={{ 
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: '#333'
+                    color: 'text.primary',
+                    mb: 2
                   }}
                 >
                   Chatbot Instructions and Knowledge
@@ -644,11 +732,17 @@ function ConfigWorkbench() {
                     ...config,
                     instructions: e.target.value
                   })}
-                  variant="outlined"
-                  size="small"
+                  variant="standard"
+                  placeholder="Enter chatbot instructions and knowledge"
                   sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      fontSize: '0.875rem'
+                    '& .MuiInput-root': {
+                      fontSize: '0.875rem',
+                      '&:before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                      },
+                      '&:hover:not(.Mui-disabled):before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.2)'
+                      }
                     }
                   }}
                 />
@@ -656,14 +750,23 @@ function ConfigWorkbench() {
             </Grid>
 
             <Grid item xs={12}>
-              <Paper sx={{ p: 3 }}>
+              <Paper 
+                elevation={0} 
+                sx={{ 
+                  p: 3, 
+                  mb: 2,
+                  bgcolor: 'background.default',
+                  borderRadius: 2
+                }}
+              >
                 <Typography 
                   variant="h6" 
                   gutterBottom
                   sx={{ 
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: '#333'
+                    color: 'text.primary',
+                    mb: 2
                   }}
                 >
                   Example Questions and Answers for Assimilation
@@ -677,11 +780,17 @@ function ConfigWorkbench() {
                     ...config,
                     exampleQuestions: e.target.value
                   })}
-                  variant="outlined"
-                  size="small"
+                  variant="standard"
+                  placeholder="Enter example questions and answers"
                   sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      fontSize: '0.875rem'
+                    '& .MuiInput-root': {
+                      fontSize: '0.875rem',
+                      '&:before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                      },
+                      '&:hover:not(.Mui-disabled):before': {
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.2)'
+                      }
                     }
                   }}
                 />
@@ -693,6 +802,53 @@ function ConfigWorkbench() {
 
       {/* Add the confirmation dialog */}
       <ConfirmDialog {...confirmDialog} />
+
+      {/* Add user menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleUserMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={() => setDeleteDialogOpen(true)}>
+          Poista tili
+        </MenuItem>
+        <MenuItem onClick={handleLogout}>
+          Kirjaudu ulos
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Account Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Poista tili</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Haluatko varmasti poistaa tilisi? Tätä toimintoa ei voi perua.
+            Kaikki luomasi chatbotit poistetaan.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            Peruuta
+          </Button>
+          <Button 
+            onClick={handleDeleteAccount}
+            color="error"
+          >
+            Poista tili
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
