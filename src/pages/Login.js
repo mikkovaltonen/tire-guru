@@ -46,7 +46,7 @@ function Login() {
     try {
       if (isSignUp) {
         if (!termsAccepted) {
-          setError('Sinun täytyy hyväksyä käyttöehdot jatkaaksesi');
+          setError('You must accept the terms of service to continue');
           return;
         }
         await createUserWithEmailAndPassword(auth, email, password);
@@ -238,7 +238,7 @@ function Login() {
                   }
                   label={
                     <Typography variant="body2">
-                      Hyväksyn{' '}
+                      I accept the{' '}
                       <Link
                         component="button"
                         variant="body2"
@@ -247,7 +247,7 @@ function Login() {
                           setTermsDialogOpen(true);
                         }}
                       >
-                        käyttöehdot
+                        terms of service
                       </Link>
                     </Typography>
                   }
@@ -303,9 +303,9 @@ function Login() {
         scroll="paper"
       >
         <DialogTitle>
-          Käyttöehdot
+          Terms of Service
           <IconButton
-            aria-label="sulje"
+            aria-label="close"
             onClick={() => setTermsDialogOpen(false)}
             sx={{
               position: 'absolute',
@@ -377,7 +377,7 @@ function Login() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTermsDialogOpen(false)}>
-            Sulje
+            Close
           </Button>
           <Button 
             variant="contained"
@@ -386,7 +386,7 @@ function Login() {
               setTermsDialogOpen(false);
             }}
           >
-            Hyväksy
+            Accept
           </Button>
         </DialogActions>
       </Dialog>

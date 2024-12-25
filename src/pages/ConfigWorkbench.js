@@ -808,20 +808,12 @@ function ConfigWorkbench() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleUserMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
       >
         <MenuItem onClick={() => setDeleteDialogOpen(true)}>
-          Poista tili
+          Delete Account
         </MenuItem>
         <MenuItem onClick={handleLogout}>
-          Kirjaudu ulos
+          Sign Out
         </MenuItem>
       </Menu>
 
@@ -830,22 +822,22 @@ function ConfigWorkbench() {
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Poista tili</DialogTitle>
+        <DialogTitle>Delete Account</DialogTitle>
         <DialogContent>
           <Typography>
-            Haluatko varmasti poistaa tilisi? Tätä toimintoa ei voi perua.
-            Kaikki luomasi chatbotit poistetaan.
+            Are you sure you want to delete your account? This action cannot be undone.
+            All your chatbots will be deleted.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>
-            Peruuta
+            Cancel
           </Button>
           <Button 
             onClick={handleDeleteAccount}
             color="error"
           >
-            Poista tili
+            Delete Account
           </Button>
         </DialogActions>
       </Dialog>
