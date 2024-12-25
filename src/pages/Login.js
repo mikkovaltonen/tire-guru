@@ -172,6 +172,31 @@ function Login() {
                 </Box>
               </Box>
             </Paper>
+
+            {/* Add developer info */}
+            <Box sx={{ 
+              mt: 4, 
+              pt: 2, 
+              borderTop: '1px solid rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                Developed by{' '}
+                <Link 
+                  href="https://www.linkedin.com/in/mikkojohannesvaltonen/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ 
+                    textDecoration: 'none',
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  Mikko Valtonen
+                </Link>
+              </Typography>
+            </Box>
           </Box>
         </Grid>
 
