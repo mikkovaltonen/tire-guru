@@ -4,6 +4,15 @@ A web application for creating and managing AI assistants. Built with React, Mat
 
 ![AI Assistant Builder Screenshot](./image.png)
 
+## About
+
+AI Assistant Builder is developed by [Mikko Valtonen](https://www.linkedin.com/in/mikko-valtonen-b771b6174/). It allows you to create and manage custom AI assistants similar to OpenAI's GPT builder, but with more flexibility and control.
+
+For questions, collaborations, or support:
+- LinkedIn: [Mikko Valtonen](https://www.linkedin.com/in/mikko-valtonen-b771b6174/)
+- Email: mikko.j.valtonen@gmail.com
+- GitHub: [Profile](https://github.com/mikkovaltonen)
+
 ## Features
 
 - Create, edit, and delete AI assistants
