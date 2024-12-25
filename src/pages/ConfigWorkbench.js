@@ -11,7 +11,10 @@ import {
   Toolbar,
   Stack,
   Alert,
-  styled
+  styled,
+  Chip,
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import { 
   collection, 
@@ -22,9 +25,11 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { auth, db } from '../config/firebase';
+import { Launch as LaunchIcon, ContentCopy as CopyIcon } from '@mui/icons-material';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 // Custom styled buttons
 const ActionButton = styled(Button)(({ theme }) => ({
@@ -43,13 +48,14 @@ function ConfigWorkbench() {
     exampleQuestions: '',
     name: '',
     userEmail: '',
-    userId: '',
     createdAt: '',
     changedAt: ''
   });
   const [message, setMessage] = useState('');
   const [assistants, setAssistants] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false });
+  const [copySuccess, setCopySuccess] = useState(false);
   const navigate = useNavigate();
 
   // Load assistants from Firebase configs collection
@@ -57,12 +63,15 @@ function ConfigWorkbench() {
     try {
       const configsRef = collection(db, 'configs');
       const snapshot = await getDocs(configsRef);
-      const assistantsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt || new Date().toISOString(),
-        changedAt: doc.data().changedAt || new Date().toISOString()
-      }));
+      const assistantsList = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt || new Date().toISOString(),
+          changedAt: doc.data().changedAt || new Date().toISOString()
+        }))
+        // Filter to show only user's own assistants
+        .filter(assistant => assistant.userEmail === auth.currentUser?.email);
       
       // Sort by most recently changed
       const sortedAssistants = assistantsList.sort((a, b) => 
@@ -79,6 +88,9 @@ function ConfigWorkbench() {
   // Load specific config when botId changes
   useEffect(() => {
     const loadConfig = async () => {
+      // Clear message when switching assistants
+      setMessage('');
+      
       if (botId && botId !== 'new') {
         setIsLoading(true);
         try {
@@ -111,7 +123,6 @@ function ConfigWorkbench() {
           exampleQuestions: '',
           name: '',
           userEmail: auth.currentUser?.email || '',
-          userId: auth.currentUser?.uid || '',
           createdAt: new Date().toISOString(),
           changedAt: new Date().toISOString()
         });
@@ -140,8 +151,7 @@ function ConfigWorkbench() {
       await setDoc(configRef, {
         ...config,
         changedAt: timestamp,
-        userEmail: auth.currentUser?.email,
-        userId: auth.currentUser?.uid
+        userEmail: auth.currentUser?.email
       });
 
       setMessage('Configuration saved successfully!');
@@ -167,8 +177,7 @@ function ConfigWorkbench() {
         ...config,
         createdAt: new Date().toISOString(),
         changedAt: new Date().toISOString(),
-        userEmail: auth.currentUser?.email,
-        userId: auth.currentUser?.uid
+        userEmail: auth.currentUser?.email
       });
 
       setMessage('New assistant created successfully!');
@@ -204,7 +213,6 @@ function ConfigWorkbench() {
           exampleQuestions: '',
           name: '',
           userEmail: auth.currentUser?.email || '',
-          userId: auth.currentUser?.uid || '',
           createdAt: new Date().toISOString(),
           changedAt: new Date().toISOString()
         });
@@ -224,6 +232,145 @@ function ConfigWorkbench() {
     } catch (error) {
       setMessage('Error signing out: ' + error.message);
     }
+  };
+
+  // Add new function to create URL-safe string
+  const createUrlSafeId = (email, name) => {
+    const username = email.split('@')[0]; // Remove email domain
+    const safeName = name.toLowerCase()
+      .replace(/[^a-z0-9]/g, '-') // Replace non-alphanumeric with dash
+      .replace(/-+/g, '-') // Replace multiple dashes with single dash
+      .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+    return `${username}-${safeName}`;
+  };
+
+  // Add handlePublish function
+  const handlePublish = async () => {
+    if (!config.name) {
+      setMessage('Please enter a name for your assistant');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const timestamp = new Date().toISOString();
+      const publishId = createUrlSafeId(auth.currentUser.email, config.name);
+      
+      // Store the current version
+      const versionId = `${publishId}_${Date.now()}`;
+      const versionRef = doc(db, 'versions', versionId);
+      await setDoc(versionRef, {
+        ...config,
+        versionId,
+        publishId,
+        originalId: botId,
+        publishedAt: timestamp,
+        userEmail: auth.currentUser?.email
+      });
+
+      // Update the published version
+      const configRef = doc(db, 'published', publishId);
+      await setDoc(configRef, {
+        ...config,
+        originalId: botId,
+        publishedAt: timestamp,
+        changedAt: timestamp,
+        userEmail: auth.currentUser?.email,
+        publishId: publishId,
+        currentVersionId: versionId
+      });
+
+      // Update the original config to mark as published
+      const originalRef = doc(db, 'configs', botId);
+      const updatedConfig = {
+        ...config,
+        publishId: publishId,
+        publishedAt: timestamp,
+        changedAt: timestamp
+      };
+      
+      await setDoc(originalRef, updatedConfig, { merge: true });
+
+      // Update local state
+      setConfig(updatedConfig);
+
+      // Update message with URL
+      const fullUrl = `${window.location.origin}/chat/${publishId}`;
+      setMessage(
+        <span>
+          Assistant published successfully! View at:{' '}
+          <a 
+            href={fullUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'inherit', fontWeight: 'bold' }}
+          >
+            {fullUrl}
+          </a>
+        </span>
+      );
+
+      await loadAssistants();
+    } catch (error) {
+      setMessage('Error publishing assistant: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add handleUnpublish function
+  const handleUnpublish = async () => {
+    setIsLoading(true);
+    try {
+      // Delete the published version
+      const publishRef = doc(db, 'published', config.publishId);
+      await deleteDoc(publishRef);
+
+      // Update the original config to remove publish info
+      const originalRef = doc(db, 'configs', botId);
+      await setDoc(originalRef, {
+        ...config,
+        publishId: null,
+        publishedAt: null,
+        changedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setConfig({
+        ...config,
+        publishId: null,
+        publishedAt: null
+      });
+
+      setMessage('Assistant unpublished successfully');
+      await loadAssistants();
+    } catch (error) {
+      setMessage('Error unpublishing assistant: ' + error.message);
+    } finally {
+      setIsLoading(false);
+      // Close the dialog after completion
+      setConfirmDialog({ open: false });
+    }
+  };
+
+  // Add copy URL function
+  const handleCopyUrl = () => {
+    const url = `${window.location.origin}/chat/${config.publishId}`;
+    navigator.clipboard.writeText(url);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  // Modify handleUnpublish to use confirmation
+  const handleUnpublishClick = () => {
+    setConfirmDialog({
+      open: true,
+      title: 'Unpublish Assistant',
+      message: 'This will remove the public access to this assistant. Are you sure?',
+      onConfirm: async () => {
+        await handleUnpublish();
+      },
+      onCancel: () => setConfirmDialog({ open: false })
+    });
   };
 
   return (
@@ -260,16 +407,59 @@ function ConfigWorkbench() {
           }}
         >
           <Toolbar sx={{ minHeight: '56px' }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                flexGrow: 1,
-                fontSize: '1.1rem',
-                fontWeight: 500
-              }}
-            >
-              {config.name || 'New Assistant'}
-            </Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  mb: 0.5
+                }}
+              >
+                {config.name || 'New Assistant'}
+                {config.publishId && (
+                  <Chip
+                    size="small"
+                    label="Published"
+                    color="success"
+                    sx={{ ml: 1 }}
+                  />
+                )}
+              </Typography>
+              {config.publishId && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <a
+                    href={`${window.location.origin}/chat/${config.publishId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        color: 'primary.main',
+                        '&:hover': { textDecoration: 'underline' }
+                      }}
+                    >
+                      {window.location.origin}/chat/{config.publishId}
+                      <LaunchIcon sx={{ fontSize: 16 }} />
+                    </Typography>
+                  </a>
+                  <Tooltip title={copySuccess ? "Copied!" : "Copy URL"}>
+                    <IconButton 
+                      size="small" 
+                      onClick={handleCopyUrl}
+                      sx={{ p: 0.5 }}
+                    >
+                      <CopyIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )}
+            </Box>
             <Stack direction="row" spacing={1}>
               <ActionButton 
                 variant="contained" 
@@ -302,14 +492,16 @@ function ConfigWorkbench() {
               <ActionButton 
                 variant="contained" 
                 size="small"
-                onClick={handleSave}
+                onClick={config.publishId ? handleUnpublishClick : handlePublish}
                 disabled={!config.name || isLoading}
                 sx={{ 
-                  bgcolor: '#2E7D32', 
-                  '&:hover': { bgcolor: '#1B5E20' }
+                  bgcolor: config.publishId ? '#d32f2f' : '#2E7D32', 
+                  '&:hover': { 
+                    bgcolor: config.publishId ? '#b71c1c' : '#1B5E20' 
+                  }
                 }}
               >
-                Publish
+                {isLoading ? 'Processing...' : (config.publishId ? 'Unpublish' : 'Publish')}
               </ActionButton>
               <ActionButton 
                 variant="outlined" 
@@ -349,7 +541,15 @@ function ConfigWorkbench() {
                   severity="success" 
                   sx={{ 
                     mb: 2,
-                    '& .MuiAlert-message': { fontSize: '0.875rem' }
+                    '& .MuiAlert-message': { 
+                      fontSize: '0.875rem',
+                      '& a': {
+                        textDecoration: 'underline',
+                        '&:hover': {
+                          textDecoration: 'none'
+                        }
+                      }
+                    }
                   }}
                 >
                   {message}
@@ -490,6 +690,9 @@ function ConfigWorkbench() {
           </Grid>
         </Container>
       </Box>
+
+      {/* Add the confirmation dialog */}
+      <ConfirmDialog {...confirmDialog} />
     </Box>
   );
 }

@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import ConfigWorkbench from './pages/ConfigWorkbench';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import './App.css';
+import ChatPage from './pages/ChatPage';
 
 function App() {
   const [user, setUser] = React.useState(null);
@@ -36,6 +37,14 @@ function App() {
       <Route 
         path="/config/:botId" 
         element={user ? <ConfigWorkbench /> : <Navigate to="/" />} 
+      />
+      <Route 
+        path="/chat/:publishId" 
+        element={<ChatPage />} 
+      />
+      <Route 
+        path="/published/:publishId" 
+        element={<ChatPage />} 
       />
     </Routes>
   );
