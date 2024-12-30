@@ -4,6 +4,8 @@ A web application for creating and managing AI assistants. Built with React, Mat
 
 ![AI Assistant Builder Screenshot](./image.png)
 
+Procution deployment can be access via https://gpt-builder-clone.vercel.app/
+
 ## About
 
 AI Assistant Builder is developed by [Mikko Valtonen](https://www.linkedin.com/in/mikkojohannesvaltonen/). It allows you to create and manage custom AI assistants similar to OpenAI's GPT builder, but with more flexibility and control.
