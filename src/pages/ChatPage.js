@@ -1,188 +1,200 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { sendChatMessage } from '../services/openai';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Paper, 
-  TextField,
-  Button,
-  CircularProgress,
-  Avatar
-} from '@mui/material';
+import { Box, TextField, Button, Paper, Typography, Container, CircularProgress } from '@mui/material';
 import Logo from '../components/Logo';
 
 function ChatPage() {
-  const { publishId } = useParams();
+  const params = useParams();
+  const publishId = params.publishId;
+  
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Initialize chat with system message and welcome message
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const initializeChat = async () => {
+      if (!config) return;
 
-  // Load chatbot config
+      setMessages([
+        {
+          role: 'system',
+          content: config.roleDescription
+        },
+        {
+          role: 'assistant',
+          content: 'Hei! Miten voin auttaa?'
+        }
+      ]);
+    };
+
+    initializeChat();
+  }, [config]);
+
+  // Fetch config
   useEffect(() => {
-    const loadConfig = async () => {
+    const fetchConfig = async () => {
+      if (!publishId) {
+        setError('No bot ID provided');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const docRef = doc(db, 'published', publishId);
-        const docSnap = await getDoc(docRef);
+        const configsRef = collection(db, 'configs');
+        const q = query(configsRef, where('publishId', '==', publishId));
+        const querySnapshot = await getDocs(q);
         
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setConfig(data);
-          // Add initial bot message
-          setMessages([{
-            role: 'assistant',
-            content: `Hello! I'm your ${data.name}. How can I help you today?`
-          }]);
+        if (!querySnapshot.empty) {
+          const botConfig = querySnapshot.docs[0].data();
+          if (botConfig.isActive) {
+            setConfig(botConfig);
+          } else {
+            setError('This chatbot is not currently active');
+          }
         } else {
           setError('Chatbot not found');
         }
-      } catch (err) {
-        setError('Error loading chatbot: ' + err.message);
+      } catch (error) {
+        console.error("Detailed error:", error);
+        setError('Error loading chatbot');
       } finally {
         setLoading(false);
       }
     };
 
-    loadConfig();
+    fetchConfig();
   }, [publishId]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSendMessage = async () => {
+    if (!input.trim() || isProcessing) return;
 
-    setSending(true);
     const userMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsProcessing(true);
 
     try {
-      const response = await sendChatMessage([...messages, userMessage], config);
-      
-      const botMessage = { 
-        role: 'assistant', 
-        content: response
-      };
-      setMessages(prev => [...prev, botMessage]);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: messages.concat(userMessage), // Include all previous messages
+          temperature: 0.7
+        })
+      });
 
+      const data = await response.json();
+      if (data.choices && data.choices[0]) {
+        setMessages(prev => [...prev, data.choices[0].message]);
+      } else {
+        throw new Error('Invalid response from AI');
+      }
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('AI Error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I'm sorry, I encountered an error. Please try again."
+        content: 'I apologize, but I encountered an error. Please try again or contact support.'
       }]);
     } finally {
-      setSending(false);
+      setIsProcessing(false);
     }
   };
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
+  if (error) return <div>Error loading chatbot: {error}</div>;
   if (!config) return <div>Chatbot not found</div>;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
-      {/* Header */}
-      <Paper 
-        elevation={1} 
-        sx={{ 
-          p: 2, 
-          mb: 2, 
-          borderRadius: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2
-        }}
-      >
-        <Logo size="small" />
-        <Typography variant="h6">{config.name}</Typography>
-      </Paper>
-
-      {/* Chat Container */}
-      <Container maxWidth="md" sx={{ pb: 10 }}>
+    <Box 
+      sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(to bottom, #f5f5f5, #e0e0e0)',
+        py: 2
+      }}
+    >
+      <Container maxWidth="md">
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <Logo />
+        </Box>
         <Paper 
+          elevation={3} 
           sx={{ 
-            p: 2,
-            minHeight: 'calc(100vh - 180px)',
-            display: 'flex',
-            flexDirection: 'column'
+            p: 2, 
+            height: 'calc(100vh - 100px)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: 2
           }}
         >
-          {/* Messages */}
-          <Box sx={{ flexGrow: 1, mb: 2, overflowY: 'auto' }}>
-            {messages.map((message, index) => (
-              <Box
+          {/* Chat Header */}
+          <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
+            {config.name}
+          </Typography>
+
+          {/* Messages Area */}
+          <Box sx={{ 
+            flexGrow: 1, 
+            overflowY: 'auto', 
+            mb: 2,
+            p: 2,
+            borderRadius: 1
+          }}>
+            {messages.filter(m => m.role !== 'system').map((message, index) => (
+              <Box 
                 key={index}
                 sx={{
-                  display: 'flex',
-                  gap: 2,
                   mb: 2,
-                  bgcolor: message.role === 'assistant' ? '#f8f9fa' : 'transparent',
-                  p: 2,
-                  borderRadius: 1
+                  display: 'flex',
+                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
                 }}
               >
-                <Avatar 
-                  sx={{ 
-                    bgcolor: message.role === 'assistant' ? 'primary.main' : 'secondary.main',
-                    width: 32,
-                    height: 32
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: 2,
+                    maxWidth: '70%',
+                    bgcolor: message.role === 'user' ? 'primary.main' : 'background.paper',
+                    color: message.role === 'user' ? 'white' : 'text.primary'
                   }}
                 >
-                  {message.role === 'assistant' ? '🤖' : '👤'}
-                </Avatar>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word'
-                  }}
-                >
-                  {message.content}
-                </Typography>
+                  <Typography>{message.content}</Typography>
+                </Paper>
               </Box>
             ))}
-            <div ref={messagesEndRef} />
           </Box>
 
-          {/* Input */}
+          {/* Input Area */}
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
               fullWidth
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
               placeholder="Type your message..."
+              variant="outlined"
+              size="small"
+              disabled={isProcessing}
               multiline
               maxRows={4}
-              disabled={sending}
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'white'
-                }
-              }}
             />
-            <Button
-              variant="contained"
-              onClick={handleSend}
-              disabled={sending || !input.trim()}
-              sx={{ minWidth: 100 }}
+            <Button 
+              variant="contained" 
+              onClick={handleSendMessage}
+              disabled={!input.trim() || isProcessing}
+              endIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : null}
             >
-              {sending ? <CircularProgress size={24} /> : 'Send'}
+              Send
             </Button>
           </Box>
         </Paper>

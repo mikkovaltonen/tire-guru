@@ -255,7 +255,7 @@ function ConfigWorkbench() {
     return `${username}-${safeName}`;
   };
 
-  // Add handlePublish function
+  // Update handlePublish
   const handlePublish = async () => {
     if (!config.name) {
       setMessage('Please enter a name for your assistant');
@@ -265,51 +265,26 @@ function ConfigWorkbench() {
     setIsLoading(true);
     try {
       const timestamp = new Date().toISOString();
-      const publishId = createUrlSafeId(auth.currentUser.email, config.name);
+      const configRef = doc(db, 'configs', botId);
       
-      // Store the current version
-      const versionId = `${publishId}_${Date.now()}`;
-      const versionRef = doc(db, 'versions', versionId);
-      await setDoc(versionRef, {
-        ...config,
-        versionId,
-        publishId,
-        originalId: botId,
-        publishedAt: timestamp,
-        userEmail: auth.currentUser?.email
-      });
-
-      // Update the published version
-      const configRef = doc(db, 'published', publishId);
-      await setDoc(configRef, {
-        ...config,
-        originalId: botId,
-        publishedAt: timestamp,
-        changedAt: timestamp,
-        userEmail: auth.currentUser?.email,
-        publishId: publishId,
-        currentVersionId: versionId
-      });
-
-      // Update the original config to mark as published
-      const originalRef = doc(db, 'configs', botId);
+      // Create a consistent publishId if it doesn't exist
+      const publishId = config.publishId || createUrlSafeId(auth.currentUser.email, config.name);
+      
       const updatedConfig = {
         ...config,
+        isActive: true,
         publishId: publishId,
-        publishedAt: timestamp,
         changedAt: timestamp
       };
       
-      await setDoc(originalRef, updatedConfig, { merge: true });
-
-      // Update local state
+      await setDoc(configRef, updatedConfig);
       setConfig(updatedConfig);
 
-      // Update message with URL
+      // Use publishId in the URL
       const fullUrl = `${window.location.origin}/chat/${publishId}`;
       setMessage(
         <span>
-          Assistant published successfully! View at:{' '}
+          Assistant published! View at:{' '}
           <a 
             href={fullUrl}
             target="_blank"
@@ -329,36 +304,25 @@ function ConfigWorkbench() {
     }
   };
 
-  // Add handleUnpublish function
+  // Replace handleUnpublish with deactivate
   const handleUnpublish = async () => {
     setIsLoading(true);
     try {
-      // Delete the published version
-      const publishRef = doc(db, 'published', config.publishId);
-      await deleteDoc(publishRef);
-
-      // Update the original config to remove publish info
-      const originalRef = doc(db, 'configs', botId);
-      await setDoc(originalRef, {
+      const configRef = doc(db, 'configs', botId);
+      const updatedConfig = {
         ...config,
-        publishId: null,
-        publishedAt: null,
+        isActive: false,
         changedAt: new Date().toISOString()
-      }, { merge: true });
-
-      setConfig({
-        ...config,
-        publishId: null,
-        publishedAt: null
-      });
-
-      setMessage('Assistant unpublished successfully');
+      };
+      
+      await setDoc(configRef, updatedConfig);
+      setConfig(updatedConfig);
+      setMessage('Assistant deactivated successfully');
       await loadAssistants();
     } catch (error) {
-      setMessage('Error unpublishing assistant: ' + error.message);
+      setMessage('Error deactivating assistant: ' + error.message);
     } finally {
       setIsLoading(false);
-      // Close the dialog after completion
       setConfirmDialog({ open: false });
     }
   };
@@ -478,16 +442,16 @@ function ConfigWorkbench() {
               <ActionButton 
                 variant="contained" 
                 size="small"
-                onClick={config.publishId ? handleUnpublishClick : handlePublish}
+                onClick={config.isActive ? handleUnpublishClick : handlePublish}
                 disabled={!config.name || isLoading}
                 sx={{ 
-                  bgcolor: config.publishId ? '#d32f2f' : '#2E7D32', 
+                  bgcolor: config.isActive ? '#d32f2f' : '#2E7D32', 
                   '&:hover': { 
-                    bgcolor: config.publishId ? '#b71c1c' : '#1B5E20' 
+                    bgcolor: config.isActive ? '#b71c1c' : '#1B5E20' 
                   }
                 }}
               >
-                {isLoading ? 'Processing...' : (config.publishId ? 'Unpublish' : 'Publish')}
+                {isLoading ? 'Processing...' : (config.isActive ? 'Unpublish' : 'Publish')}
               </ActionButton>
               <ActionButton 
                 variant="outlined" 
@@ -542,8 +506,8 @@ function ConfigWorkbench() {
               </Grid>
             )}
 
-            {/* Add permanent link display for published assistants */}
-            {config.publishId && (
+            {/* Modify the Published URL display section */}
+            {config.isActive && config.publishId && (
               <Grid item xs={12}>
                 <Paper 
                   elevation={0} 
