@@ -16,15 +16,26 @@ function ChatPage() {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Initialize chat with system message and welcome message
+  // Initialize chat with combined instructions
   useEffect(() => {
     const initializeChat = async () => {
       if (!config) return;
 
+      // Combine role description and instructions
+      const systemPrompt = `
+${config.roleDescription}
+
+Instructions and Knowledge:
+${config.instructions}
+
+Example Q&A:
+${config.exampleQuestions}
+`;
+
       setMessages([
         {
           role: 'system',
-          content: config.roleDescription
+          content: systemPrompt
         },
         {
           role: 'assistant',
