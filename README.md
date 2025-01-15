@@ -4,7 +4,7 @@ A web application for creating and managing AI assistants. Built with React, Mat
 
 ![AI Assistant Builder Screenshot](./image.png)
 
-Procution deployment can be access via https://gpt-builder-clone.vercel.app/
+Production deployment can be accessed via https://gpt-builder-clone.vercel.app/
 
 ## About
 
@@ -25,6 +25,8 @@ For questions, collaborations, or support:
 - Publish assistants with shareable URLs
 - Custom AI behavior configuration
 - Material-UI based modern interface
+- Chat history storage in Firestore
+- Nested message structure for better organization
 
 ## Setup
 
@@ -54,7 +56,14 @@ REACT_APP_OPENAI_API_KEY=your_openai_api_key
 REACT_APP_OPENAI_MODEL=gpt-4
 ```
 
-4. Start the development server:
+4. Initialize Firebase:
+```bash
+npm install -g firebase-tools
+firebase login
+firebase init firestore
+```
+
+5. Start the development server:
 ```bash
 npm start
 ```
@@ -66,6 +75,8 @@ npm start
   - `/pages` - Main application pages
   - `/config` - Configuration files including Firebase setup
   - `/services` - Service integrations (OpenAI, Firebase)
+- `firestore.rules` - Firestore security rules
+- `firestore.indexes.json` - Firestore indexes configuration
 
 ## Technologies Used
 
