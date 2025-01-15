@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Box, TextField, Button, Paper, Typography, Container, CircularProgress } from '@mui/material';
 import Logo from '../components/Logo';
@@ -15,6 +15,7 @@ function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [chatId] = useState(`chat_${Date.now()}`);
 
   // Initialize chat with combined instructions
   useEffect(() => {
@@ -91,6 +92,18 @@ ${config.exampleQuestions}
     setIsProcessing(true);
 
     try {
+      // Store user message in nested structure
+      await addDoc(
+        collection(db, 'chatHistory', chatId, 'messages'), 
+        {
+          botId: config.publishId,
+          sender: 'user',
+          content: input,
+          timestamp: serverTimestamp()
+        }
+      );
+
+      // Call OpenAI API
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -99,23 +112,47 @@ ${config.exampleQuestions}
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
-          messages: messages.concat(userMessage), // Include all previous messages
+          messages: messages.concat(userMessage),
           temperature: 0.7
         })
       });
 
       const data = await response.json();
       if (data.choices && data.choices[0]) {
-        setMessages(prev => [...prev, data.choices[0].message]);
+        const assistantMessage = data.choices[0].message;
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // Store assistant response in nested structure
+        await addDoc(
+          collection(db, 'chatHistory', chatId, 'messages'),
+          {
+            botId: config.publishId,
+            sender: 'assistant',
+            content: assistantMessage.content,
+            timestamp: serverTimestamp()
+          }
+        );
       } else {
         throw new Error('Invalid response from AI');
       }
     } catch (error) {
       console.error('AI Error:', error);
-      setMessages(prev => [...prev, {
+      const errorMessage = {
         role: 'assistant',
         content: 'I apologize, but I encountered an error. Please try again or contact support.'
-      }]);
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      
+      // Store error message in nested structure
+      await addDoc(
+        collection(db, 'chatHistory', chatId, 'messages'),
+        {
+          botId: config.publishId,
+          sender: 'assistant',
+          content: errorMessage.content,
+          timestamp: serverTimestamp()
+        }
+      );
     } finally {
       setIsProcessing(false);
     }
