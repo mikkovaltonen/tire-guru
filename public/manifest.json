@@ -1,9 +1,9 @@
 {
-  "short_name": "AI Assistant Builder",
-  "name": "AI Assistant Builder",
+  "short_name": "Rengas Guru",
+  "name": "Rengas Guru - Älykkäämpi tapa ostaa renkaat",
   "icons": [],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#2196F3",
   "background_color": "#ffffff"
 } 

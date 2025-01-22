@@ -1,39 +1,23 @@
-# AI Assistant Builder
+# Rengas Guru Landing Page
 
-A web application for creating and managing AI assistants. Built with React, Material-UI, and Firebase.
+A modern landing page for Rengas Guru tire comparison service, built with React and Material-UI.
 
-![AI Assistant Builder Screenshot](./image.png)
-
-Production deployment can be accessed via https://gpt-builder-clone.vercel.app/
-
-## About
-
-AI Assistant Builder is developed by [Mikko Valtonen](https://www.linkedin.com/in/mikkojohannesvaltonen/). It allows you to create and manage custom AI assistants similar to OpenAI's GPT builder, but with more flexibility and control.
-
-For questions, collaborations, or support:
-- LinkedIn: [Mikko Valtonen](https://www.linkedin.com/in/mikkojohannesvaltonen/)
-- Email: mikko.j.valtonen@gmail.com
-- GitHub: [Profile](https://github.com/mikkovaltonen)
+![Rengas Guru Landing Page](./image.png)
 
 ## Features
 
-- Create, edit, and delete AI assistants
-- Configure assistant roles and behaviors
-- Save and manage multiple assistant configurations
-- User authentication
-- Real-time database synchronization
-- Publish assistants with shareable URLs
-- Custom AI behavior configuration
-- Material-UI based modern interface
-- Chat history storage in Firestore
-- Nested message structure for better organization
+- Clean, modern landing page design
+- Real-time tire product listings from Firebase
+- Responsive layout for all devices
+- Finnish language interface
+- Material-UI components
 
 ## Setup
 
 1. Clone the repository:
 ```bash
 git clone [repository-url]
-cd ai-assistant-builder
+cd rengas-guru-landing
 ```
 
 2. Install dependencies:
@@ -41,7 +25,7 @@ cd ai-assistant-builder
 npm install
 ```
 
-3. Create a `.env` file based on `.env.example` and add your Firebase and OpenAI configuration:
+3. Create a `.env` file based on `.env.example` and add your Firebase configuration:
 ```env
 # Firebase Configuration
 REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
@@ -50,20 +34,9 @@ REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
 REACT_APP_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
 REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
 REACT_APP_FIREBASE_APP_ID=your_firebase_app_id
-
-# OpenAI Configuration
-REACT_APP_OPENAI_API_KEY=your_openai_api_key
-REACT_APP_OPENAI_MODEL=gpt-4
 ```
 
-4. Initialize Firebase:
-```bash
-npm install -g firebase-tools
-firebase login
-firebase init firestore
-```
-
-5. Start the development server:
+4. Start the development server:
 ```bash
 npm start
 ```
@@ -72,19 +45,20 @@ npm start
 
 - `/src`
   - `/components` - Reusable UI components
-  - `/pages` - Main application pages
+    - `RengasGuruLogo.js` - Logo component
+    - `TireProductsList.js` - Tire products display component
   - `/config` - Configuration files including Firebase setup
-  - `/services` - Service integrations (OpenAI, Firebase)
+  - `/pages` - Main application pages
+    - `Login.js` - Landing page
 - `firestore.rules` - Firestore security rules
-- `firestore.indexes.json` - Firestore indexes configuration
+- `.env` - Environment variables
 
 ## Technologies Used
 
 - React
 - Material-UI
-- Firebase (Authentication & Firestore)
-- OpenAI API
-- React Router
+- Firebase (Firestore)
+- CSS-in-JS
 
 ## Contributing
 
