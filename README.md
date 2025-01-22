@@ -2,6 +2,22 @@
 
 A modern tire comparison service that helps users save €50-200 per tire set. Built with React and Firebase.
 
+## Save Money on Tires
+
+![Rengas Guru UI](docs/images/rengas-guru-ui.png)
+
+With Rengas Guru, you can:
+- **Save up to €200 per tire set** by comparing prices across all major tire retailers
+- **Find the best value** by balancing price with quality metrics (wet grip, noise, fuel efficiency)
+- **Make informed decisions** using our smart scoring system that considers your preferences
+- **Compare prices instantly** across multiple vendors
+- **See all important metrics** in one view (price, ratings, EU labels, noise levels)
+
+Example savings from the screenshot:
+- Top rated tire (139 points): €133.72
+- Similar tire with lower score: €97.49
+- **Potential savings: €36.23 per tire (€145 per set)**
+
 ## Features
 
 - Clean, modern landing page design
@@ -9,6 +25,13 @@ A modern tire comparison service that helps users save €50-200 per tire set. B
 - Responsive layout for all devices
 - Finnish language interface
 - Material-UI components
+- Smart scoring system (0-100 points)
+- Customizable preferences for:
+  - Price importance
+  - Wet grip performance
+  - Fuel economy
+  - Noise levels
+  - User satisfaction
 
 ## Data Structure
 
