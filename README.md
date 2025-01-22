@@ -10,6 +10,41 @@ A modern tire comparison service that helps users save €50-200 per tire set. B
 - Finnish language interface
 - Material-UI components
 
+## Data Structure
+
+### Tire Products Collection (`tire_products`)
+
+Each document in the collection should have these fields that connect to filters:
+
+```javascript
+{
+  "width": "205",      // Tire width (e.g., "205", "225")
+  "profile": "55",     // Tire profile/height (e.g., "55", "45")
+  "diameter": "16",    // Rim diameter (e.g., "16", "17")
+  "season": "Summer",  // Season type ("Summer" or "Winter")
+  
+  // Other product fields
+  "brand": "string",   // Tire brand name
+  "model": "string",   // Tire model name
+  "price": number,     // Price in EUR
+  "vendor": "string",  // Vendor name
+  "url": "string",     // Product URL
+  "fuel_efficiency": "string",  // Fuel efficiency rating
+  "noise_level": "string"      // Noise level in dB
+}
+```
+
+### Filter to Field Mapping
+
+| Filter Name | Firestore Field | Example Values |
+|------------|----------------|----------------|
+| width      | width          | "205", "225"   |
+| profile    | profile        | "55", "45"     |
+| diameter   | diameter       | "16", "17"     |
+| season     | season         | "Summer", "Winter" |
+
+**Note:** All dimension values (width, profile, diameter) are stored as strings in Firestore to match exactly with the filter values.
+
 ## Setup
 
 1. Clone the repository:
@@ -60,3 +95,36 @@ npm start
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Deployment Checklist
+
+1. Ensure all environment variables are set in Vercel:
+   - REACT_APP_FIREBASE_API_KEY
+   - REACT_APP_FIREBASE_AUTH_DOMAIN
+   - REACT_APP_FIREBASE_PROJECT_ID
+   - REACT_APP_FIREBASE_STORAGE_BUCKET
+   - REACT_APP_FIREBASE_MESSAGING_SENDER_ID
+   - REACT_APP_FIREBASE_APP_ID
+
+2. Build command should be:
+   ```bash
+   npm run build
+   ```
+
+3. Output directory should be:
+   ```
+   build
+   ```
+
+4. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+## Troubleshooting Deployment
+
+If changes are not visible:
+1. Clear Vercel cache and redeploy
+2. Check build logs for errors
+3. Verify environment variables
+4. Test locally with `npm start`
