@@ -140,3 +140,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
    - Verify all environment variables are set
    - Check build logs for any missing dependencies
    - Ensure Firebase configuration is correct
+
+## Development Setup
+
+### React DevTools
+
+For the best development experience, install React DevTools:
+
+1. Chrome/Edge users: [React Developer Tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi)
+2. Firefox users: [React Developer Tools](https://addons.mozilla.org/en-US/firefox/addon/react-devtools/)
+
+After installation:
+1. Restart your browser
+2. Open DevTools (F12)
+3. Find the new "Components" and "Profiler" tabs

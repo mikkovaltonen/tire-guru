@@ -6,7 +6,8 @@ import {
   Grid,
   Paper,
   IconButton,
-  Fade
+  Fade,
+  Tooltip
 } from '@mui/material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
@@ -15,6 +16,8 @@ import TireFilters from '../components/TireFilters';
 import TireProductsList from '../components/TireProductsList';
 import UserPreferences from '../components/UserPreferences';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { useNavigate } from 'react-router-dom';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 // Add background image URLs
 const CHATBOT_BG = 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80';
@@ -24,7 +27,7 @@ function Login() {
     width: '',
     profile: '',
     diameter: '',
-    season: ''  // Will be set to 'So' or 'Ta' when user selects
+    season: 'So'  // Default to summer tires
   });
   const [isFullScreen, setIsFullScreen] = React.useState(false);
   const [preferences, setPreferences] = React.useState({
@@ -34,6 +37,7 @@ function Login() {
     satisfactionImportance: 33,
     noiseImportance: 33
   });
+  const navigate = useNavigate();
 
   // Determine if we should show the compact layout
   const showCompactLayout = Boolean(filters.season && filters.diameter);
@@ -53,6 +57,28 @@ function Login() {
     console.log('Preferences changing to:', newPreferences);
     setPreferences(newPreferences);
   };
+
+  // Add this near your fullscreen button
+  const AnalyticsButton = (
+    <Tooltip title="Rengastilastot">
+      <IconButton 
+        onClick={() => navigate('/analytics')}
+        sx={{ 
+          position: 'absolute',
+          top: 16,
+          right: 70, // Position it next to fullscreen button
+          zIndex: 1,
+          bgcolor: 'background.paper',
+          boxShadow: 1,
+          '&:hover': {
+            bgcolor: 'grey.100'
+          }
+        }}
+      >
+        <BarChartIcon />
+      </IconButton>
+    </Tooltip>
+  );
 
   return (
     <Box sx={{ 
@@ -122,6 +148,8 @@ function Login() {
                 position: 'relative' // For positioning the fullscreen button
               }}
             >
+              {/* Add the analytics button next to fullscreen button */}
+              {AnalyticsButton}
               {/* Fullscreen toggle button */}
               <IconButton 
                 onClick={handleFullScreenToggle}

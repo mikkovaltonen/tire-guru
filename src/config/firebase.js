@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 if (!process.env.REACT_APP_FIREBASE_API_KEY) {
   console.error('Firebase API key is missing');
@@ -17,6 +17,27 @@ const firebaseConfig = {
 console.log('Initializing Firebase with project:', firebaseConfig.projectId);
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
 
+// Use new cache settings instead of enableIndexedDbPersistence
+const db = initializeFirestore(app, {
+  cacheSizeBytes: 50 * 1024 * 1024, // 50 MB cache size
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+  cache: {
+    lru: {
+      sizeBytes: 50 * 1024 * 1024 // 50 MB
+    }
+  }
+});
+
+// Add connection state logging
+window.addEventListener('online', () => {
+  console.log('App is online - reconnecting to Firebase');
+});
+
+window.addEventListener('offline', () => {
+  console.warn('App is offline - using cached data');
+});
+
+export { db };
 export default app; 

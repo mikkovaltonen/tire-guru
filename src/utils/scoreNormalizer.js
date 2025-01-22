@@ -27,7 +27,9 @@ const letterToNumber = (letter) => {
 export const getNormalizedScores = (product, allProducts) => {
   // Get arrays of all values for each criterion
   const allPrices = allProducts.map(p => p.price).filter(Boolean);
-  const allNoises = allProducts.map(p => parseFloat(p.noise_level)).filter(Boolean);
+  const allNoises = allProducts
+    .map(p => parseFloat(p.noise_level))
+    .filter(v => !isNaN(v) && v >= 50 && v <= 100);
   const allWetGrips = allProducts.map(p => letterToNumber(p.wet_grip)).filter(Boolean);
   const allFuelEfficiencies = allProducts.map(p => letterToNumber(p.fuel_efficiency)).filter(Boolean);
   const allDexRatings = allProducts.map(p => parseInt(p.dex_rating, 10)).filter(Boolean);

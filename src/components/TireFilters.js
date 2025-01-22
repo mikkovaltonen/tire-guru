@@ -9,12 +9,15 @@ import {
 } from '@mui/material';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { fetchTireProducts } from '../services/tireDataService';
 
 // Static values
 const RIM_SIZES = ['14', '15', '16', '17', '18', '19', '20', '21'];
-const SEASONS = [
-  { value: 'So', label: 'Kesä' },
-  { value: 'Ta', label: 'Talvi' }
+
+// Käytetään suoraan tietokannan koodeja
+const SEASON_OPTIONS = [
+  { value: 'So', label: 'Kesä (So)' },
+  { value: 'Wi', label: 'Talvi (Wi)' }
 ];
 
 // Fixed width options for each rim size
@@ -48,8 +51,11 @@ const PROFILE_OPTIONS = {
 };
 
 function TireFilters({ filters, onFilterChange }) {
-  console.log('TireFilters mounting with filters:', filters);
-  
+  // Only log in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('TireFilters mounting with filters:', filters);
+  }
+
   const { width, profile, diameter, season } = filters;
   const [loading, setLoading] = useState(false);
   const [availableWidths, setAvailableWidths] = useState([]);
@@ -58,27 +64,22 @@ function TireFilters({ filters, onFilterChange }) {
   // Fetch available widths when season and diameter are selected
   useEffect(() => {
     const fetchAvailableWidths = async () => {
-      if (!season || !diameter) {
-        setAvailableWidths([]);
-        return;
-      }
+      if (!season || !diameter) return;
 
       setLoading(true);
       try {
-        const q = query(
-          collection(db, 'tire_products'),
-          where('season', '==', season),
-          where('rim_size', '==', parseInt(diameter, 10))
-        );
+        const products = await fetchTireProducts({
+          season: season,
+          rim_size: diameter
+        });
 
-        const snapshot = await getDocs(q);
-        const widths = [...new Set(snapshot.docs.map(doc => doc.data().width))]
+        const widths = [...new Set(products.map(p => p.width))]
           .filter(Boolean)
           .sort((a, b) => a - b);
 
         setAvailableWidths(widths);
       } catch (error) {
-        console.error('Error fetching widths:', error);
+        console.error('Error:', error);
       } finally {
         setLoading(false);
       }
@@ -121,9 +122,19 @@ function TireFilters({ filters, onFilterChange }) {
   }, [season, diameter, width]);
 
   const handleSeasonChange = (e) => {
+    const newSeason = e.target.value;
+    console.log('Season change analysis:', {
+      oldSeason: season,
+      newSeason,
+      seasonType: newSeason === 'Wi' ? 'Winter' : 'Summer',
+      seasonValue: newSeason.trim(), // Check for extra spaces
+      seasonUpperCase: newSeason.toUpperCase(),
+      seasonLowerCase: newSeason.toLowerCase()
+    });
+
     onFilterChange({
       ...filters,
-      season: e.target.value,
+      season: newSeason,
       width: '',
       profile: ''
     });
@@ -163,18 +174,15 @@ function TireFilters({ filters, onFilterChange }) {
           <Typography variant="body1" gutterBottom>
             Kausi
           </Typography>
-          <FormControl sx={{ minWidth: 100 }}>
+          <FormControl sx={{ minWidth: 120 }}>
             <Select
-              value={season}
+              value={filters.season || 'So'}
               onChange={handleSeasonChange}
-              variant="outlined"
-              sx={{ bgcolor: 'white' }}
             >
-              <MenuItem value="">
-                <em>Select</em>
-              </MenuItem>
-              {SEASONS.map(s => (
-                <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+              {SEASON_OPTIONS.map(option => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>

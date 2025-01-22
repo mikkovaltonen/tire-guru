@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase';
 import { Box, Typography, Alert } from '@mui/material';
 import TireDataVisualization from './TireDataVisualization';
+import { fetchTireProducts } from '../services/tireDataService';
 
 function TireProductsList({ filters, preferences }) {
   const [products, setProducts] = useState([]);
@@ -10,51 +9,30 @@ function TireProductsList({ filters, preferences }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Only fetch if season, diameter AND width are selected
-    if (filters?.season && filters?.diameter && filters?.width) {
-      fetchProducts();
-    } else {
-      setProducts([]);
-    }
-  }, [filters]);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      let q = collection(db, 'tire_products');
-      const constraints = [];
-
-      // Required filters
-      constraints.push(where('season', '==', filters.season));
-      const rimSize = parseInt(filters.diameter, 10);
-      constraints.push(where('rim_size', '==', rimSize));
-      const widthValue = parseInt(filters.width, 10);
-      constraints.push(where('width', '==', widthValue));
-
-      // Optional profile filter
-      if (filters?.profile && filters.profile !== '') {
-        const profileValue = parseInt(filters.profile, 10);
-        if (!isNaN(profileValue)) {
-          constraints.push(where('profile', '==', profileValue));
-        }
+    const loadProducts = async () => {
+      if (!filters?.season || !filters?.diameter || !filters?.width || !filters?.profile) {
+        return;
       }
 
-      q = query(q, ...constraints);
-      const querySnapshot = await getDocs(q);
-      
-      const productsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      setLoading(true);
+      try {
+        const data = await fetchTireProducts(filters);
+        console.log('Products loaded:', {
+          filters,
+          count: data.length,
+          sample: data.slice(0, 2)
+        });
+        setProducts(data);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setProducts(productsData);
-    } catch (error) {
-      console.error('Error details:', error);
-      setError('Failed to load products');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadProducts();
+  }, [filters]);
 
   if (error) {
     return (
