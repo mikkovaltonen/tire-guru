@@ -4,7 +4,8 @@ A modern tire comparison service that helps users save €50-200 per tire set. B
 
 ## Save Money on Tires
 
-![Rengas Guru UI](docs/images/rengas-guru-ui.png)
+<!-- Replace this URL with your actual hosted image URL -->
+<img src="https://your-image-hosting-service.com/rengas-guru-ui.png" alt="Rengas Guru UI" width="100%" />
 
 With Rengas Guru, you can:
 - **Save up to €200 per tire set** by comparing prices across all major tire retailers
@@ -119,35 +120,23 @@ npm start
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Deployment Checklist
+## Deployment on Vercel
 
-1. Ensure all environment variables are set in Vercel:
-   - REACT_APP_FIREBASE_API_KEY
-   - REACT_APP_FIREBASE_AUTH_DOMAIN
-   - REACT_APP_FIREBASE_PROJECT_ID
-   - REACT_APP_FIREBASE_STORAGE_BUCKET
-   - REACT_APP_FIREBASE_MESSAGING_SENDER_ID
-   - REACT_APP_FIREBASE_APP_ID
+1. Connect your GitHub repository to Vercel
+2. Set the following build configurations:
+   - Build Command: `npm run build`
+   - Output Directory: `build`
+   - Install Command: `npm install`
 
-2. Build command should be:
+3. Add all environment variables from `.env.example` to your Vercel project settings
+
+4. Ensure the following dependencies are properly installed:
    ```bash
-   npm run build
+   npm install @mui/material @emotion/react @emotion/styled @mui/icons-material firebase
    ```
 
-3. Output directory should be:
-   ```
-   build
-   ```
-
-4. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-## Troubleshooting Deployment
-
-If changes are not visible:
-1. Clear Vercel cache and redeploy
-2. Check build logs for errors
-3. Verify environment variables
-4. Test locally with `npm start`
+5. If deployment fails:
+   - Clear the Vercel build cache
+   - Verify all environment variables are set
+   - Check build logs for any missing dependencies
+   - Ensure Firebase configuration is correct
