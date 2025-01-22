@@ -4,15 +4,56 @@ import {
   Box,
   Typography,
   Grid,
-  Paper
+  Paper,
+  IconButton,
+  Fade
 } from '@mui/material';
-import TireProductsList from '../components/TireProductsList';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import RengasGuruLogo from '../components/RengasGuruLogo';
+import TireFilters from '../components/TireFilters';
+import TireProductsList from '../components/TireProductsList';
+import UserPreferences from '../components/UserPreferences';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Add background image URLs
 const CHATBOT_BG = 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80';
 
 function Login() {
+  const [filters, setFilters] = React.useState({
+    width: '',
+    profile: '',
+    diameter: '',
+    season: ''  // Will be set to 'So' or 'Ta' when user selects
+  });
+  const [isFullScreen, setIsFullScreen] = React.useState(false);
+  const [preferences, setPreferences] = React.useState({
+    priceImportance: 33,
+    wetGripImportance: 33,
+    fuelEfficiencyImportance: 33,
+    satisfactionImportance: 33,
+    noiseImportance: 33
+  });
+
+  // Determine if we should show the compact layout
+  const showCompactLayout = Boolean(filters.season && filters.diameter);
+
+  const handleFilterChange = (newFilters) => {
+    console.log('Filters changing from:', filters);
+    console.log('Filters changing to:', newFilters);
+    setFilters(newFilters);
+  };
+
+  const handleFullScreenToggle = () => {
+    setIsFullScreen(!isFullScreen);
+  };
+
+  const handlePreferenceChange = (newPreferences) => {
+    console.log('Preferences changing from:', preferences);
+    console.log('Preferences changing to:', newPreferences);
+    setPreferences(newPreferences);
+  };
+
   return (
     <Box sx={{ 
       minHeight: '100vh',
@@ -20,119 +61,138 @@ function Login() {
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     }}>
-      {/* Hero Section */}
-      <Container maxWidth="lg" sx={{ pt: 4, pb: 6 }}>
-        <Grid container spacing={4}>
-          {/* Left Sidebar */}
-          <Grid item xs={12} md={4}>
-            <Box sx={{ mb: 4 }}>
-              <RengasGuruLogo size="large" />
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 3, mb: 3 }}>
-                Säästä jopa 300€ vuodessa löytämällä parhaat renkaat parhaaseen hintaan.
-              </Typography>
-            </Box>
+      <Container maxWidth={isFullScreen ? false : "lg"} sx={{ 
+        pt: isFullScreen ? 0 : 4, 
+        pb: isFullScreen ? 0 : 6,
+        px: isFullScreen ? 0 : undefined // Remove padding in fullscreen
+      }}>
+        <Grid container spacing={isFullScreen ? 0 : 4}>
+          {/* Left Sidebar - Hidden in fullscreen mode */}
+          <Fade in={!isFullScreen}>
+            <Grid item xs={12} md={showCompactLayout ? 3 : 4} 
+              sx={{ display: isFullScreen ? 'none' : 'block' }}
+            >
+              <Box sx={{ 
+                mb: 4,
+                transition: 'all 0.3s ease-in-out' // Smooth transition
+              }}>
+                <RengasGuruLogo size={showCompactLayout ? "small" : "large"} />
+                {!showCompactLayout && (
+                  <Typography variant="body1" color="text.secondary" sx={{ mt: 3, mb: 3 }}>
+                    Säästä jopa 300€ vuodessa löytämällä parhaat renkaat parhaaseen hintaan.
+                  </Typography>
+                )}
+              </Box>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Paper sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.50',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)'
-                  }
-                }}>
-                  <Typography variant="h6" gutterBottom>
-                    💰 Säästä rahaa
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Vertailemme hinnat kaikilta suurilta rengasliikkeiltä
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Paper sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.50',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)'
-                  }
-                }}>
-                  <Typography variant="h6" gutterBottom>
-                    🛡️ Paranna turvallisuutta
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Vertailemme jarrutusmatkat ja kulutuskestävyyden
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Paper sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.50',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)'
-                  }
-                }}>
-                  <Typography variant="h6" gutterBottom>
-                    ⚡ Säästä aikaa
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tekoäly analysoi puolestasi parhaat vaihtoehdot
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Paper sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.50',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)'
-                  }
-                }}>
-                  <Typography variant="h6" gutterBottom>
-                    🌿 Ympäristöystävällisyys
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Huomioimme polttoainetaloudellisuuden ja kestävyyden
-                  </Typography>
-                </Paper>
+              <Grid container spacing={2}>
+                {['💰 Säästä rahaa', '🛡️ Paranna turvallisuutta', '⚡ Säästä aikaa', '🌿 Ympäristöystävällisyys'].map((title, index) => (
+                  <Grid item xs={12} key={index}>
+                    <Paper sx={{ 
+                      p: showCompactLayout ? 1 : 2,
+                      bgcolor: 'grey.50',
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-4px)'
+                      }
+                    }}>
+                      <Typography variant={showCompactLayout ? "body2" : "h6"} gutterBottom>
+                        {title}
+                      </Typography>
+                      {!showCompactLayout && (
+                        <Typography variant="body2" color="text.secondary">
+                          {getPromoText(index)}
+                        </Typography>
+                      )}
+                    </Paper>
+                  </Grid>
+                ))}
               </Grid>
             </Grid>
-          </Grid>
+          </Fade>
 
           {/* Main Content */}
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={isFullScreen ? 12 : (showCompactLayout ? 9 : 8)}>
             <Paper 
-              elevation={2} 
+              elevation={isFullScreen ? 0 : 2}
               sx={{ 
-                height: '100%',
+                height: isFullScreen ? '100vh' : '100%',
                 p: 3,
-                borderRadius: 2
+                borderRadius: isFullScreen ? 0 : 2,
+                transition: 'all 0.3s ease-in-out',
+                position: 'relative' // For positioning the fullscreen button
               }}
             >
-              <TireProductsList />
+              {/* Fullscreen toggle button */}
+              <IconButton 
+                onClick={handleFullScreenToggle}
+                sx={{ 
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  zIndex: 1,
+                  bgcolor: 'background.paper',
+                  boxShadow: 1,
+                  '&:hover': {
+                    bgcolor: 'grey.100'
+                  }
+                }}
+              >
+                {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+              </IconButton>
+
+              <Box sx={{ 
+                height: '100%',
+                overflow: 'auto',
+                pt: isFullScreen ? 2 : 0
+              }}>
+                <ErrorBoundary>
+                  <TireFilters 
+                    filters={filters} 
+                    onFilterChange={handleFilterChange} 
+                  />
+                </ErrorBoundary>
+                <UserPreferences 
+                  preferences={preferences} 
+                  onPreferenceChange={handlePreferenceChange}
+                />
+                <TireProductsList 
+                  filters={filters} 
+                  preferences={preferences}
+                />
+              </Box>
             </Paper>
           </Grid>
         </Grid>
       </Container>
 
-      {/* Footer */}
-      <Box sx={{ bgcolor: 'rgba(255, 255, 255, 0.9)', py: 3, mt: 'auto' }}>
-        <Container maxWidth="lg">
-          <Typography variant="body2" color="text.secondary" align="center">
-            Powered by Rengas Guru - Älykkäämpi tapa ostaa renkaat
-          </Typography>
-        </Container>
-      </Box>
+      {/* Footer - Hidden in fullscreen mode */}
+      <Fade in={!isFullScreen}>
+        <Box sx={{ 
+          bgcolor: 'rgba(255, 255, 255, 0.9)', 
+          py: 3, 
+          mt: 'auto',
+          display: isFullScreen ? 'none' : 'block'
+        }}>
+          <Container maxWidth="lg">
+            <Typography variant="body2" color="text.secondary" align="center">
+              Powered by Rengas Guru - Älykkäämpi tapa ostaa renkaat
+            </Typography>
+          </Container>
+        </Box>
+      </Fade>
     </Box>
   );
+}
+
+// Helper function for promo text
+function getPromoText(index) {
+  const texts = [
+    'Vertailemme hinnat kaikilta suurilta rengasliikkeiltä',
+    'Vertailemme jarrutusmatkat ja kulutuskestävyyden',
+    'Tekoäly analysoi puolestasi parhaat vaihtoehdot',
+    'Huomioimme polttoainetaloudellisuuden ja kestävyyden'
+  ];
+  return texts[index];
 }
 
 export default Login; 

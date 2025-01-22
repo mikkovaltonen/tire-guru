@@ -48,6 +48,8 @@ const PROFILE_OPTIONS = {
 };
 
 function TireFilters({ filters, onFilterChange }) {
+  console.log('TireFilters mounting with filters:', filters);
+  
   const { width, profile, diameter, season } = filters;
   const [loading, setLoading] = useState(false);
   const [availableWidths, setAvailableWidths] = useState([]);
