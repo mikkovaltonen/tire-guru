@@ -1,8 +1,6 @@
-# Rengas Guru Landing Page
+# Rengas Guru
 
-A modern landing page for Rengas Guru tire comparison service, built with React and Material-UI.
-
-![Rengas Guru Landing Page](./image.png)
+A modern tire comparison service that helps users save €50-200 per tire set. Built with React and Firebase.
 
 ## Features
 
@@ -17,7 +15,7 @@ A modern landing page for Rengas Guru tire comparison service, built with React 
 1. Clone the repository:
 ```bash
 git clone [repository-url]
-cd rengas-guru-landing
+cd rengas-guru
 ```
 
 2. Install dependencies:
@@ -51,7 +49,6 @@ npm start
   - `/pages` - Main application pages
     - `Login.js` - Landing page
 - `firestore.rules` - Firestore security rules
-- `.env` - Environment variables
 
 ## Technologies Used
 
@@ -59,14 +56,6 @@ npm start
 - Material-UI
 - Firebase (Firestore)
 - CSS-in-JS
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## License
 
