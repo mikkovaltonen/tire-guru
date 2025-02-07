@@ -2,10 +2,15 @@
 
 A modern tire comparison service that helps users save €50-200 per tire set. Built with React and Firebase.
 
-## Save Money on Tires
+## Live Demo
 
-<!-- Replace this URL with your actual hosted image URL -->
-<img src="https://your-image-hosting-service.com/rengas-guru-ui.png" alt="Rengas Guru UI" width="100%" />
+The service is deployed and accessible at: [https://tire-guru.vercel.app/](https://tire-guru.vercel.app/)
+
+## Landing Page
+
+![Rengas Guru Landing Page](landing-page.png)
+
+## Save Money on Tires
 
 With Rengas Guru, you can:
 - **Save up to €200 per tire set** by comparing prices across all major tire retailers
