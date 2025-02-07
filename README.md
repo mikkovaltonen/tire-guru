@@ -8,7 +8,7 @@ The service is deployed and accessible at: [https://tire-guru.vercel.app/](https
 
 ## Landing Page
 
-![Rengas Guru Landing Page](landing-page.png)
+![Rengas Guru Landing Page](https://github.com/mikkovaltonen/tire-guru/assets/1521083/0c0c5c5c-c5c4-4c0c-a0c4-c0c0c0c0c0c0)
 
 ## Save Money on Tires
 
